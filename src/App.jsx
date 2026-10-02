@@ -1,117 +1,38 @@
-import React, { useState } from 'react';
-import MainApp from './MainApp';
-import ProductListingPage from './ProductListingPage';
-import Header from './Header';
-import data from './Data';
-import Cart from './Cart';
+import { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import ProductList from './ProductList';
+import CartItem from './CartItem';
 
-// Main App
 export default function App() {
-  const [showOnbording, setShowOnbording] = useState(true);
-  const [productData, setProductData] = useState(data);
-  const [cart, setCart] = useState(() => {
-    let cartString = localStorage.getItem('CART');
-    let cartJson = JSON.parse(cartString);
-    return cartJson ?? [];
-  });
   const [showCart, setShowCart] = useState(false);
+  const cartItems = useSelector((state) => state.cart.items);
 
-  function getStartedClicked() {
-    setShowOnbording(false);
-  }
-
-  function addProductToCart(productId) {
-    setCart(prevCart => {
-      var items = [];
-      if (prevCart.length !== 0) {
-        const existingItem = prevCart.find(
-          item => item[productId] !== undefined
-        );
-
-        if (existingItem) {
-          items = prevCart.map(item =>
-            item[productId] !== undefined
-              ? { [productId]: item[productId] + 1 }
-              : item
-          );
-        } else {
-          items = [...prevCart, { [productId]: 1 }];
-        }
-      } else {
-        items = [{ [productId]: 1 }];
-      }
-      localStorage.setItem('CART', JSON.stringify(items));
-      return items;
-    });
-  }
-
-  function onOpenCart() {
-    setShowCart(true);
-  }
-
-  function onBackToShop() {
-    setShowCart(false);
-  }
-
-  function onMinusFromCart(id) {
-    setCart(prevCart => {
-      let newCart = prevCart.map(item => {
-        let key = Object.keys(item)[0];
-        if (key == id) {
-          let value = Object.values(item)[0];
-          if (value > 0) {
-            return { [key]: value - 1 };
-          }
-        } else {
-          return item;
-        }
-      }).filter(
-        item => {
-          let value = Object.values(item)[0];
-          return value > 0
-        }
-      );
-
-      localStorage.setItem('CART', JSON.stringify(newCart));
-      return newCart;
-    });
-  }
-
-  function onRemoveFromCart(id) {
-    console.log("recahed")
-    setCart(prevCart => {
-      let newCart = prevCart.filter(item => {
-        let key = Object.keys(item)[0];
-        return key != id
-      });
-
-      console.log(newCart)
-      localStorage.setItem('CART', JSON.stringify(newCart));
-      return newCart;
-    });
-  }
-
-
+  const totalQuantity = useMemo(
+    () => cartItems.reduce((total, item) => total + item.quantity, 0),
+    [cartItems]
+  );
 
   return (
-    <>
-      {showOnbording && <MainApp onGetStarted={getStartedClicked} />}
-      {!showOnbording &&  <Header productCount={cart.length} onOpenCart={onOpenCart} />}
-      {!showOnbording && !showCart && (
-        <ProductListingPage
-          productData={productData}
-          cart={cart}
-          onAddProductToCart={addProductToCart}
-        />
+    <div className="app-shell">
+      <header className="shop-header">
+        <div className="brand-block">
+          <div className="brand-logo">e</div>
+          <div>
+            <h1>e-plantShopping</h1>
+            <span>Fresh greenery for your home</span>
+          </div>
+        </div>
+
+        <button className="cart-toggle" onClick={() => setShowCart((value) => !value)}>
+          Cart <span className="cart-count">{totalQuantity}</span>
+        </button>
+      </header>
+
+      {showCart ? (
+        <CartItem onContinueShopping={() => setShowCart(false)} />
+      ) : (
+        <ProductList onOpenCart={() => setShowCart(true)} />
       )}
-      {showCart &&  <Cart
-        cart={cart}
-        productData={productData}
-        addProductToCart={addProductToCart}
-        onBackToShop={onBackToShop}
-        onMinusFromCart={onMinusFromCart}
-        onRemoveFromCart={onRemoveFromCart}
-      />}
-    </>
+    </div>
   );
 }
